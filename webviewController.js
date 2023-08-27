@@ -23,13 +23,13 @@ var mnPinCopyController = JSB.defineClass(
 
       self.moveButton = UIButton.buttonWithType(0);
       self.setButtonLayout(self.moveButton)
-      self.moveButton.backgroundColor = UIColor.whiteColor().colorWithAlphaComponent(0)
+      self.moveButton.backgroundColor = UIColor.grayColor().colorWithAlphaComponent(0.1)
 
       // 新建一个关闭按钮对象
       self.closeButton = UIButton.buttonWithType(0);
       self.setButtonLayout(self.closeButton,"closeButtonTapped:")
       self.closeButton.setImageForState(self.closeImage,0)
-      self.closeButton.backgroundColor = UIColor.whiteColor().colorWithAlphaComponent(0)
+      self.closeButton.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
       self.closeButton.titleLabel.font = UIFont.systemFontOfSize(14);
 
 
@@ -108,20 +108,21 @@ var mnPinCopyController = JSB.defineClass(
       viewFrame.y = 5;
       viewFrame.x = 5;
       // 调整视图的高度和宽度
-      viewFrame.height -= 10;  // 根据需要调整这个值
+      viewFrame.height -= 50;  // 根据需要调整这个值
       viewFrame.width -= 10;   // 根据需要调整这个值
       
       // 现在 textviewPinText 应该填满整个区域
       self.textviewPinText.frame = viewFrame;
+      // 调整 textviewPinText 的高度，否则会把下方按钮盖住
       
       // 设置关闭按钮的位置和尺寸
       self.closeButton.frame = {x: xRight-35, y: yBottom-35, width: 30, height: 30};
       // 设置移动按钮的位置和尺寸
       self.moveButton.frame = {x: xLeft+5, y: yBottom-35, width: xRight-10, height: 30};
       // 设置复制按钮的位置和尺寸
-      self.copyButton.frame = {x: viewFrame.width-130, y: viewFrame.height-70, width: 60, height: 30};
+      self.copyButton.frame = {x: xLeft+75, y: yBottom-35, width: 60, height: 30};
       // 设置粘贴按钮的位置和尺寸
-      self.pasteButton.frame = {x: viewFrame.width-60, y: viewFrame.height-70, width: 60, height: 30};
+      self.pasteButton.frame = {x: xLeft+5, y: yBottom-35, width: 60, height: 30};
     },
     scrollViewDidScroll: function() {
     },
@@ -138,6 +139,12 @@ var mnPinCopyController = JSB.defineClass(
       self.view.hidden = true;
     },
     onMoveGesture:function (gesture) {
+      // console.log("onMoveGesture called");
+      // let translation = gesture.translationInView(self.appInstance.studyController(self.view.window).view);
+      // 简化条件逻辑以便于调试
+      // if (gesture.state !== 3) {
+        // self.locationToBrowser = {x: translation.x, y: translation.y};
+      // }    
       let locationToMN = gesture.locationInView(self.appInstance.studyController(self.view.window).view)
       if ( (Date.now() - self.moveDate) > 100) {
         let translation = gesture.translationInView(self.appInstance.studyController(self.view.window).view)
@@ -167,6 +174,7 @@ var mnPinCopyController = JSB.defineClass(
       self.currentFrame  = self.view.frame
     },
     onResizeGesture:function (gesture) {
+      // console.log("onResizeGesture called");
       self.custom = false;
       self.dynamic = false;
       let baseframe = gesture.view.frame
