@@ -43,7 +43,12 @@ JSB.newAddon = function (mainPath) {
           NSNotificationCenter.defaultCenter().addObserverSelectorName(
             self,
             "onNewWindow:",
-            "newWindow"
+            "newPinWindow"
+          )
+          NSNotificationCenter.defaultCenter().addObserverSelectorName(
+            self,
+            "onCloseWindow:",
+            "closePinWindow"
           )
           // 刷新插件按钮状态
           self.appInstance.studyController(self.window).refreshAddonCommands();
@@ -52,26 +57,57 @@ JSB.newAddon = function (mainPath) {
           // 隐藏插件窗口
           self.addonController.view.hidden = true;
           // 设置插件窗口的尺寸和位置
-          self.addonController.view.frame = { x: 0, y: 0, width: 300, height: 120 }
+          self.addonController.view.frame = { x: 0, y: 50, width: 300, height: 120 }
           // 锁定插件窗口的尺寸和位置，不加这行代码的话 MNE 中可能会有问题
-          self.addonController.currentFrame = { x: 0, y: 0, width: 300, height: 120 }
+          self.addonController.currentFrame = { x: 0, y: 50, width: 300, height: 120 }
+          self.controllerState = []
         }
         NSTimer.scheduledTimerWithTimeInterval(0.2, false, function () {
           self.appInstance.studyController(self.window).becomeFirstResponder(); //For dismiss keyboard on iOS
         });
       },
       onNewWindow: function (sender) {
-        if (!self.appInstance.checkNotifySenderInWindow(sender, self.window)) {
-          return; // Don't process message from other window
+        if (self.window!==self.appInstance.focusWindow) {
+          return
         }
-        self.newWindow = mnPinCopyController.new();
-        self.newWindow.mainPath = mainPath;
-        self.appInstance.studyController(self.window).view.addSubview(self.newWindow.view);
-        self.newWindow.view.hidden = false;
-        self.newWindow.view.frame = { x: 0, y: 0, width: 300, height: 120 }
-        self.newWindow.currentFrame = { x: 0, y: 0, width: 300, height: 120 }
+        let newFrame = sender.userInfo.frame
+        let i = 0
+        //寻找还没被创建的变量名
+        while (self["newWindow"+i]) {
+          i = i+1
+        }
+        // self.appInstance.showHUD("new:"+i,self.window,2)
+
+        if (i>=self.controllerState.length) {
+          self.controllerState.push(true)
+        }else{
+          self.controllerState[i] = true
+        }
+        self["newWindow"+i] = mnPinCopyController.new();//创建新窗口
+        self["newWindow"+i].mainPath = mainPath;
+        self["newWindow"+i].view.frame = newFrame
+        self["newWindow"+i].currentFrame = newFrame
+        self["newWindow"+i].controllerIndex = i
+        self.appInstance.studyController(self.window).view.addSubview(self["newWindow"+i].view);
+      },
+      onCloseWindow: function (sender) {
+        let index = sender.userInfo.index
+        // self.appInstance.showHUD("close:"+index,self.window,2)
+        self["newWindow"+index].view.removeFromSuperview()
+        delete self["newWindow"+index]
+        self.controllerState[index] = false
       },
       notebookWillClose: function (notebookid) {
+        self.addonController.view.removeFromSuperview()
+        self.controllerState.forEach((contrllerState,index)=>{
+          if (contrllerState) {
+            self["newWindow"+index].view.removeFromSuperview()
+            delete self["newWindow"+index]
+          }
+        })
+        self.controllerState = []
+        NSNotificationCenter.defaultCenter().removeObserverName(self, 'newPinWindow');
+        NSNotificationCenter.defaultCenter().removeObserverName(self, 'closePinWindow');
       },
 
       documentDidOpen: function (docmd5) {
@@ -85,25 +121,11 @@ JSB.newAddon = function (mainPath) {
         if (controller !== self.appInstance.studyController(self.window)) {
           return;
         };
-        // 若插件窗口未隐藏
-        if (!self.addonController.view.hidden) {
-          // 整个 MN 的界面
-          let studyFrame = Application.sharedInstance().studyController(this.window).view.bounds
-          // 插件当前的界面
-          let currentFrame = self.addonController.currentFrame
-
-          // 如果插件的水平超出了 MN 界面的宽度，就调整插件的 x，把插件“拉回来”
-          if (currentFrame.x + currentFrame.width  >= studyFrame.width) {
-            currentFrame.x = studyFrame.width - currentFrame.width
-          }
-          // 如果插件的 y 值超过了 MN 界面的高度，就将插件的 y 值设置为 MN 界面的高度 - 20
-          //   - 也就是说插件如果跑出 MN 界面了，就把他“拉回来”
-          if (currentFrame.y + currentFrame.height >= studyFrame.height) {
-            currentFrame.y = studyFrame.height - currentFrame.height           
-          }
-          // 重新设置插件的 frame 的属性值
-          self.addonController.view.frame = currentFrame
-          self.addonController.currentFrame = currentFrame
+        self.setViewFrame("addonController")
+        let i = 0
+        while (self["newWindow"+i]) {
+          self.setViewFrame("newWindow"+i)
+          i = i+1
         }
       },
       
@@ -140,6 +162,13 @@ JSB.newAddon = function (mainPath) {
         }else{
           self.addonController.view.hidden = !self.addonController.view.hidden
         }
+        // self.appInstance.showHUD(self.controllerState,self.window,2)
+        self.controllerState.forEach((contrllerState,index)=>{
+          if (contrllerState) {
+            self["newWindow"+index].view.hidden = self.addonController.view.hidden
+          }
+        
+        })
       },
       // 
       async onToggle() {
@@ -169,5 +198,26 @@ JSB.newAddon = function (mainPath) {
       }
     }
   );
+  mnPinCopyClass.prototype.setViewFrame= function (contrllerName) {
+    if (!this[contrllerName].view.hidden) {
+      // 整个 MN 的界面
+      let studyFrame = Application.sharedInstance().studyController(this.window).view.bounds
+      // 插件当前的界面
+      let currentFrame = this[contrllerName].currentFrame
+      // 如果插件的水平超出了 MN 界面的宽度，就调整插件的 x，把插件“拉回来”
+      if (currentFrame.x + currentFrame.width  >= studyFrame.width) {
+        currentFrame.x = studyFrame.width - currentFrame.width
+      }
+      // 如果插件的 y 值超过了 MN 界面的高度，就将插件的 y 值设置为 MN 界面的高度 - 20
+      //   - 也就是说插件如果跑出 MN 界面了，就把他“拉回来”
+      if (currentFrame.y + currentFrame.height >= studyFrame.height) {
+        currentFrame.y = studyFrame.height - currentFrame.height           
+      }
+      // 重新设置插件的 frame 的属性值
+      this[contrllerName].view.frame = currentFrame
+      this[contrllerName].currentFrame = currentFrame
+    }
+  }
+
   return mnPinCopyClass;
 };

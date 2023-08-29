@@ -162,13 +162,23 @@ var mnPinCopyController = JSB.defineClass(
     closeButtonTapped: function() {
       // 隐藏窗口
       self.view.hidden = true;
+      if (self.controllerIndex !== undefined) {
+        NSNotificationCenter.defaultCenter().postNotificationNameObjectUserInfo("closePinWindow",self.view.window,{index:self.controllerIndex})
+      }
     },
     newWindow: function() {
+      let studyFrame = self.appInstance.studyController(self.view.window).view.bounds
+      let viewFrame = self.view.frame
+      //确定新新窗口的位置,大小则沿用上个窗口
+      let isOutOfScreenWidth = (viewFrame.x+viewFrame.width*2 > studyFrame.width)
+      let isOutOfScreenHeight = (viewFrame.y+viewFrame.height*2 > studyFrame.height)
+      viewFrame.x = isOutOfScreenWidth?viewFrame.x:viewFrame.x+viewFrame.width
+      viewFrame.y = (isOutOfScreenWidth && !isOutOfScreenHeight)?viewFrame.y+viewFrame.height:viewFrame.y
       NSNotificationCenter.defaultCenter().postNotificationNameObjectUserInfo(
-        "newWindow",
+        "newPinWindow",
         self.view.window,
         {
-          test:123
+          frame:viewFrame
         }
       )
     },
@@ -181,12 +191,12 @@ var mnPinCopyController = JSB.defineClass(
         let buttonFrame = self.moveButtonBelow.frame
         let newY = locationToButton.y-translation.y 
         let newX = locationToButton.x-translation.x
-        if (gesture.state !== 3 && (newY<buttonFrame.height && newY>0 && newX<buttonFrame.width && newX>0 && Math.abs(translation.y)<20 && Math.abs(translation.x)<20)) {
-          self.locationToBrowser = {x:locationToBrowser.x-translation.x,y:locationToBrowser.y-translation.y}
-        }
+        // if (gesture.state !== 3 && (newY<buttonFrame.height+10 && newY>-10 && newX<buttonFrame.width+10 && newX>-10 && Math.abs(translation.y)<40 && Math.abs(translation.x)<40)) {
+          gesture.locationToBrowser = {x:locationToBrowser.x-translation.x,y:locationToBrowser.y-translation.y}
+        // }
       }
       self.moveDate = Date.now()
-      let location = {x:locationToMN.x - self.locationToBrowser.x,y:locationToMN.y -self.locationToBrowser.y}
+      let location = {x:locationToMN.x - gesture.locationToBrowser.x,y:locationToMN.y -gesture.locationToBrowser.y}
       let frame = self.view.frame
       var viewFrame = self.view.bounds;
       let studyFrame = self.appInstance.studyController(self.view.window).view.bounds
