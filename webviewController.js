@@ -4,6 +4,7 @@ var mnPinCopyController = JSB.defineClass(
       let config  =  NSUserDefaults.standardUserDefaults().objectForKey("mnPinCopy")
       self.appInstance = Application.sharedInstance();
       self.closeImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/close.png`), 2)
+      self.addWindowImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/add.png`), 2)
       self.lastFrame = self.view.frame;
       self.currentFrame = self.view.frame
       self.moveDate = Date.now()
@@ -21,16 +22,28 @@ var mnPinCopyController = JSB.defineClass(
         0.8
       );
 
-      self.moveButton = UIButton.buttonWithType(0);
-      self.setButtonLayout(self.moveButton)
-      self.moveButton.backgroundColor = UIColor.grayColor().colorWithAlphaComponent(0.1)
+      // 新建一个移动窗口按钮
+      self.moveButtonAbove = UIButton.buttonWithType(0);
+      self.setButtonLayout(self.moveButtonAbove)
+      self.moveButtonAbove.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.1)
+
+      self.moveButtonBelow = UIButton.buttonWithType(0);
+      self.setButtonLayout(self.moveButtonBelow)
+      self.moveButtonBelow.backgroundColor = UIColor.grayColor().colorWithAlphaComponent(0.1)
 
       // 新建一个关闭按钮对象
       self.closeButton = UIButton.buttonWithType(0);
       self.setButtonLayout(self.closeButton,"closeButtonTapped:")
       self.closeButton.setImageForState(self.closeImage,0)
       self.closeButton.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
-      self.closeButton.titleLabel.font = UIFont.systemFontOfSize(14);
+      self.closeButton.titleLabel.font = UIFont.systemFontOfSize(12);
+
+      // 新建一个增加窗口按钮对象
+      self.addWindowButton = UIButton.buttonWithType(0);
+      self.setButtonLayout(self.addWindowButton,"newWindow:")
+      self.addWindowButton.setImageForState(self.addWindowImage,0)
+      self.addWindowButton.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
+      self.addWindowButton.titleLabel.font = UIFont.systemFontOfSize(12);
 
 
       // 新建一个文本框对象
@@ -68,11 +81,20 @@ var mnPinCopyController = JSB.defineClass(
       // self.moveGesture1.view.hidden = false
       // self.moveGesture1.addTargetAction(self,"onMoveGesture:")
 
-      // 拖拽最下方的长条可移动窗口
-      self.moveGesture = new UIPanGestureRecognizer(self,"onMoveGesture:")
-      self.moveButton.addGestureRecognizer(self.moveGesture)
+
+      // 移动窗口的按钮
+
+      // 最下方的长条
+      self.moveGesture = new UIPanGestureRecognizer(self, "onMoveGesture:")
+      self.moveButtonBelow.addGestureRecognizer(self.moveGesture)
       self.moveGesture.view.hidden = false
-      self.moveGesture.addTargetAction(self,"onMoveGesture:")
+      self.moveGesture.addTargetAction(self, "onMoveGesture:")
+
+      // 上方的窄长条
+      self.moveGesture1 = new UIPanGestureRecognizer(self, "onMoveGesture:")
+      self.moveButtonAbove.addGestureRecognizer(self.moveGesture1)
+      self.moveGesture1.view.hidden = false
+      self.moveGesture1.addTargetAction(self, "onMoveGesture:")
 
       // 拖拽最右下角的按钮可改变窗口大小
       self.resizeGesture = new UIPanGestureRecognizer(self,"onResizeGesture:")
@@ -105,10 +127,10 @@ var mnPinCopyController = JSB.defineClass(
     
       // 下面的代码用于填满整个区域
       // 调整视图的 x 和 y 坐标（相当于给视图加了一个边距）
-      viewFrame.y = 5;
+      viewFrame.y = 25;
       viewFrame.x = 5;
       // 调整视图的高度和宽度
-      viewFrame.height -= 50;  // 根据需要调整这个值
+      viewFrame.height -= 65;  // 根据需要调整这个值
       viewFrame.width -= 10;   // 根据需要调整这个值
       
       // 现在 textviewPinText 应该填满整个区域
@@ -117,8 +139,11 @@ var mnPinCopyController = JSB.defineClass(
       
       // 设置关闭按钮的位置和尺寸
       self.closeButton.frame = {x: xRight-35, y: yBottom-35, width: 30, height: 30};
+      // 设置增加窗口按钮的位置和尺寸
+      self.addWindowButton.frame = {x: xRight-70, y: yBottom-34, width: 28, height: 28};
       // 设置移动按钮的位置和尺寸
-      self.moveButton.frame = {x: xLeft+5, y: yBottom-35, width: xRight-10, height: 30};
+      self.moveButtonBelow.frame = {x: xLeft + 5, y: yBottom - 35, width: xRight - 10, height: 30};
+      self.moveButtonAbove.frame = {x: xLeft + 5, y: yTop + 5, width: xRight - 10, height: 15};
       // 设置复制按钮的位置和尺寸
       self.copyButton.frame = {x: xLeft+75, y: yBottom-35, width: 60, height: 30};
       // 设置粘贴按钮的位置和尺寸
@@ -138,19 +163,22 @@ var mnPinCopyController = JSB.defineClass(
       // 隐藏窗口
       self.view.hidden = true;
     },
+    newWindow: function() {
+      NSNotificationCenter.defaultCenter().postNotificationNameObjectUserInfo(
+        "newWindow",
+        self.view.window,
+        {
+          test:123
+        }
+      )
+    },
     onMoveGesture:function (gesture) {
-      // console.log("onMoveGesture called");
-      // let translation = gesture.translationInView(self.appInstance.studyController(self.view.window).view);
-      // 简化条件逻辑以便于调试
-      // if (gesture.state !== 3) {
-        // self.locationToBrowser = {x: translation.x, y: translation.y};
-      // }    
       let locationToMN = gesture.locationInView(self.appInstance.studyController(self.view.window).view)
       if ( (Date.now() - self.moveDate) > 100) {
         let translation = gesture.translationInView(self.appInstance.studyController(self.view.window).view)
         let locationToBrowser = gesture.locationInView(self.view)
         let locationToButton = gesture.locationInView(gesture.view)
-        let buttonFrame = self.moveButton.frame
+        let buttonFrame = self.moveButtonBelow.frame
         let newY = locationToButton.y-translation.y 
         let newX = locationToButton.x-translation.x
         if (gesture.state !== 3 && (newY<buttonFrame.height && newY>0 && newX<buttonFrame.width && newX>0 && Math.abs(translation.y)<20 && Math.abs(translation.x)<20)) {
@@ -196,14 +224,14 @@ var mnPinCopyController = JSB.defineClass(
 });
 
 mnPinCopyController.prototype.setButtonLayout = function (button, targetAction) {
-    button.autoresizingMask = (1 << 0 | 1 << 3);
-    button.setTitleColorForState(UIColor.whiteColor(),0);
-    button.setTitleColorForState(this.highlightColor, 1);
-    button.backgroundColor = UIColor.colorWithHexString("#9bb2d6").colorWithAlphaComponent(0.8);
-    button.layer.cornerRadius = 10;
-    button.layer.masksToBounds = true;
-    if (targetAction) {
-      button.addTargetActionForControlEvents(this, targetAction, 1 << 6);
-    }
-    this.view.addSubview(button);
+  button.autoresizingMask = (1 << 0 | 1 << 3);
+  button.setTitleColorForState(UIColor.whiteColor(),0);
+  button.setTitleColorForState(this.highlightColor, 1);
+  button.backgroundColor = UIColor.colorWithHexString("#9bb2d6").colorWithAlphaComponent(0.8);
+  button.layer.cornerRadius = 10;
+  button.layer.masksToBounds = true;
+  if (targetAction) {
+    button.addTargetActionForControlEvents(this, targetAction, 1 << 6);
+  }
+  this.view.addSubview(button);
 }
