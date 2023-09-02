@@ -5,6 +5,8 @@ var mnPinCopyController = JSB.defineClass(
       self.appInstance = Application.sharedInstance();
       self.closeImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/close.png`), 2)
       self.addWindowImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/add.png`), 2)
+      self.cleanImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/clean.png`), 2)
+      self.minimizeImage = UIImage.imageWithDataScale(NSData.dataWithContentsOfFile(self.mainPath + `/minimize.png`), 2)
       self.lastFrame = self.view.frame;
       self.currentFrame = self.view.frame
       self.moveDate = Date.now()
@@ -30,6 +32,20 @@ var mnPinCopyController = JSB.defineClass(
       self.moveButtonBelow = UIButton.buttonWithType(0);
       self.setButtonLayout(self.moveButtonBelow)
       self.moveButtonBelow.backgroundColor = UIColor.grayColor().colorWithAlphaComponent(0.1)
+
+      // 新建一个清除按钮对象
+      self.cleanButton = UIButton.buttonWithType(0);
+      self.setButtonLayout(self.cleanButton,"cleanButtonTapped:")
+      self.cleanButton.setImageForState(self.cleanImage,0)
+      self.cleanButton.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
+      self.cleanButton.titleLabel.font = UIFont.systemFontOfSize(12);
+
+      // 新建一个最小化按钮对象
+      self.minimizeButton = UIButton.buttonWithType(0);
+      self.setButtonLayout(self.minimizeButton,"minimizeButtonTapped:")
+      self.minimizeButton.setImageForState(self.minimizeImage,0)
+      self.minimizeButton.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.3)
+      self.minimizeButton.titleLabel.font = UIFont.systemFontOfSize(12);
 
       // 新建一个关闭按钮对象
       self.closeButton = UIButton.buttonWithType(0);
@@ -143,13 +159,28 @@ var mnPinCopyController = JSB.defineClass(
       self.addWindowButton.frame = {x: xRight-70, y: yBottom-34, width: 28, height: 28};
       // 设置移动按钮的位置和尺寸
       self.moveButtonBelow.frame = {x: xLeft + 5, y: yBottom - 35, width: xRight - 10, height: 30};
-      self.moveButtonAbove.frame = {x: xLeft + 5, y: yTop + 5, width: xRight - 10, height: 15};
+      self.moveButtonAbove.frame = {x: xLeft + 35, y: yTop + 5, width: xRight - 80, height: 15};
+      // 设置清除按钮的位置和尺寸
+      self.cleanButton.frame = {x: xRight-105, y: yBottom-34, width: 28, height: 28};
+      // 设置最小化按钮的位置和尺寸
+      self.minimizeButton.frame = {x: xLeft + 5, y: yTop , width: 20, height: 20};
       // 设置复制按钮的位置和尺寸
       self.copyButton.frame = {x: xLeft+75, y: yBottom-35, width: 60, height: 30};
       // 设置粘贴按钮的位置和尺寸
       self.pasteButton.frame = {x: xLeft+5, y: yBottom-35, width: 60, height: 30};
     },
     scrollViewDidScroll: function() {
+    },
+    cleanButtonTapped: function() {
+      // 清空输入框
+      self.textviewPinText.text = ""
+    },
+    minimizeButtonTapped: function() {
+      // 最小化窗口
+      // 必须要完整的包含 x y width height
+      // 不能只用 self.view.frame.width = 200 这样改，而不管 x y
+      self.view.frame = {x:self.currentFrame.x, y:self.currentFrame.y, width:200, height:140}
+      self.currentFrame  = self.view.frame
     },
     pasteButtonTapped: function() {
       // 将剪切板的内容输出到 input 框
@@ -192,7 +223,8 @@ var mnPinCopyController = JSB.defineClass(
         let newY = locationToButton.y-translation.y 
         let newX = locationToButton.x-translation.x
         // if (gesture.state !== 3 && (newY<buttonFrame.height+10 && newY>-10 && newX<buttonFrame.width+10 && newX>-10 && Math.abs(translation.y)<40 && Math.abs(translation.x)<40)) {
-          gesture.locationToBrowser = {x:locationToBrowser.x-translation.x,y:locationToBrowser.y-translation.y}
+        // self 改为 gesture -> 修复窗口上方按钮拖拽的问题
+        gesture.locationToBrowser = {x:locationToBrowser.x-translation.x,y:locationToBrowser.y-translation.y}
         // }
       }
       self.moveDate = Date.now()
