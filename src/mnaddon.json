@@ -1,8 +1,8 @@
 {
-    "addonid": "marginnote.extension.mnpincopy",
-    "author": "XiaKangWei",
-    "title": "mn Pin & Copy",
-    "version": "1.1",
+    "addonid": "marginnote.extension.mnsnippets",
+    "author": "Linlifei",
+    "title": "MN Snippets",
+    "version": "1.0",
     "marginnote_version_min": "3.7.11",
     "cert_key": ""
 }
